@@ -1,16 +1,32 @@
 import base64
 import uuid
+from functools import lru_cache
 
 import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi_cache import caches, close_caches
-from fastapi_cache.backends.memory import CACHE_KEY, InMemoryCacheBackend
+from fastapi_cache.backends.redis import CACHE_KEY, RedisCacheBackend
+from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from settings import Settings
 from utils import generate_random_text, generate_captcha_image
 
 
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()
+
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def cache():
@@ -19,7 +35,7 @@ def cache():
 
 @app.on_event('startup')
 async def on_startup() -> None:
-    rc = InMemoryCacheBackend()
+    rc = RedisCacheBackend(get_settings().redis_dsn)
     caches.set(CACHE_KEY, rc)
 
 
@@ -34,34 +50,38 @@ class CaptchaAnswer(BaseModel):
 
 
 @app.get('/captcha')
-async def get_captcha(cache: InMemoryCacheBackend = Depends(cache)):
+async def get_captcha(cache: RedisCacheBackend = Depends(cache),
+                      settings: Settings = Depends(get_settings)):
     captcha_id = uuid.uuid4().hex
     answer = generate_random_text()
-    await cache.set(captcha_id, answer, ttl=360)
+    await cache.set(captcha_id, answer, expire=settings.captcha_id_ttl)
 
     image = generate_captcha_image(answer)
 
     return {
-        'captcha_id': captcha_id,
+        'id': captcha_id,
         'image': base64.b64encode(image.read()),
     }
 
 
 @app.post('/captcha')
-async def solve_captcha(data: CaptchaAnswer, cache: InMemoryCacheBackend = Depends(cache)):
+async def solve_captcha(data: CaptchaAnswer,
+                        cache: RedisCacheBackend = Depends(cache)):
     captcha_id = data.id
     answer = data.answer
 
     solution = await cache.get(captcha_id)
     if solution is None:
-        raise HTTPException(status_code=404, detail='Captcha is expired.')
-
-    await cache.delete(captcha_id)
+        raise HTTPException(status_code=408, detail='Captcha is expired.')
 
     if answer != solution:
         raise HTTPException(status_code=400, detail='Captcha not solved.')
 
-    return {}
+    # This is a friendly captcha and let the user retry
+    # until the configured expiration period has passed.
+    await cache.delete(captcha_id)
+
+    return ''
 
 
 if __name__ == '__main__':
