@@ -18,7 +18,11 @@ def get_settings() -> Settings:
     return Settings()
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Micro Captcha",
+    description="A simple microservice which provides CAPTCHA verification trough http protocol",
+    version="0.0.1",
+)
 
 app.add_middleware(
     CORSMiddleware,
