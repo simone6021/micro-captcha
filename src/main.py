@@ -35,7 +35,15 @@ def cache():
 
 @app.on_event('startup')
 async def on_startup() -> None:
-    rc = RedisCacheBackend(get_settings().redis_dsn)
+    # Necessary for testing, because dependency injection
+    # works in path operations only, eg. functions.
+    settings = app.dependency_overrides.get(get_settings, get_settings)()
+
+    rc = RedisCacheBackend(settings.redis_dsn)
+    # Testing can possibly trigger lifespan events multiple times,
+    # and cache registry raise an error if an entry is already registered.
+    if caches.get(CACHE_KEY):
+        caches.remove(CACHE_KEY)
     caches.set(CACHE_KEY, rc)
 
 
