@@ -7,4 +7,4 @@ services:
         TESTS: 1
     volumes:
       - ./tests:/app/tests
-    command: ["pytest"]
+    command: ["pytest", "--cov=."]
