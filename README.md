@@ -37,7 +37,7 @@ Internally two container are created: python 3.8 for a [fastapi](https://fastapi
 1. Clone the repository:  
    `git clone https://github.com/simone6021/micro-captcha`
 2. Launch from a shell:  
-   `docker-compose -f docker-compose.yml -f docker-compose-tests.yml up`
+   `docker-compose -f docker-compose.yml -f docker-compose-tests.yml run --rm app`
 
 Application docker image support setting a non-empty value to `TEST` argument during docker build to include testing dependencies.
    
