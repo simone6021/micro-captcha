@@ -23,7 +23,7 @@ and can be easily decoded by other consumers, mobile applications included.
 ### Requirements
 
 Any recent version of docker and docker-compose installed.  
-Internally two container are created: python 3.8 for a [fastapi](https://fastapi.tiangolo.com) application and redis 6 for persisted storage.
+Internally two containers are created: python 3.8 for a [fastapi](https://fastapi.tiangolo.com) application and redis 6 for persisted storage.
 
 ### How to run
 
@@ -37,7 +37,7 @@ Internally two container are created: python 3.8 for a [fastapi](https://fastapi
 1. Clone the repository:  
    `git clone https://github.com/simone6021/micro-captcha`
 2. Launch from a shell:  
-   `docker-compose -f docker-compose.yml -f docker-compose-tests.yml run --rm app`
+   `docker-compose -f docker-compose.yml -f docker-compose-tests.yml run --rm app && docker-compose down`
 
 Application docker image support setting a non-empty value to `TEST` argument during docker build to include testing dependencies.
    
@@ -51,14 +51,15 @@ Application docker image support setting a non-empty value to `TEST` argument du
 3. Decode the base64 encoded image.  
    Example for a UNIX-like system with base64 utility installed: `echo "content_of_image_key" | base64 -d > captcha.png`
 
-4. Solve the captcha then send the answer, along with the captcha identifier provided, to the POST endpoint:
-   curl example: `curl -X POST -H "Content-Type: application/json" -d '{"captcha_id": "captcha_id_value", "answer": "answer_value"}' localhost:8000/captcha`
+4. Solve the captcha then send the answer, along with the captcha identifier provided, to the POST endpoint.  
+   curl example: `curl -X POST -H "Content-Type: application/json" -d '{"id": "captcha_id_value", "answer": "answer_value"}' localhost:8000/captcha`
 
 Please note that you can try this application using the auto generated documentation, just open a browser and visit the URL `http://localhost:8000/docs`
 
 ### TODO
 
 - [ ] Add API rate limit, e.g. throttling.
+- [ ] Improve automatic tests launch with a simple bash script which always tears down all docker-compose services but returns exit code of pytest command.
 - [ ] 100% tests coverage, current is 98%.
 - [ ] Improve the captcha image: make it looks nicer and/or (slightly) more readable.
 - [ ] Implement audio captcha.
